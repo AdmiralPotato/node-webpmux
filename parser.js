@@ -55,17 +55,19 @@ class WebPReader {
   async readFileHeader() {
     const buf = await this.readBytes(12);
     const decoder = new TextDecoder('utf-8');
+    const view = new DataView(buf.buffer);
     if (buf === undefined) { throw new Error('Reached end while reading header'); }
     if (decoder.decode(buf.slice(0, 4)) != 'RIFF') { throw new Error('Bad header (not RIFF)'); }
     if (decoder.decode(buf.slice(8, 12)) != 'WEBP') { throw new Error('Bad header (not WEBP)'); }
-    return { fileSize: buf.readUInt32LE(4) };
+    return { fileSize: view.getInt32(4, true) };
   }
   async readChunkHeader() {
     const buf = await this.readBytes(8, true);
     const decoder = new TextDecoder('utf-8');
+    const view = new DataView(buf.buffer);
     if (buf.length == 0) { return { fourCC: '\x00\x00\x00\x00', size: 0 }; }
     else if (buf.length < 8) { throw new Error('Reached end while reading chunk header'); }
-    return { fourCC: decoder.decode(buf.slice(0, 4)), size: buf.readUInt32LE(4) };
+    return { fourCC: decoder.decode(buf.slice(0, 4)), size: view.getInt32(4, true) };
   }
   async readChunkContents(size) {
     let buf = await this.readBytes(size);
