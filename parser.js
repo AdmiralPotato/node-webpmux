@@ -27,6 +27,16 @@ const constants = {
   TYPE_LOSSLESS: 1,
   TYPE_EXTENDED: 2
 };
+function getDataView(data) {
+  return new DataView(data.buffer, data.byteOffset, data.byteLength);
+}
+function readUIntLE(data, offset, byteLength) {
+  let value = 0;
+  for (let i = 0; i < byteLength; i++) {
+    value |= data[offset + i] << (8 * i);
+  }
+  return value >>> 0;
+}
 function VP8Width(data) { return ((data[7] << 8) | data[6]) & 0b0011111111111111; }
 function VP8Height(data) { return ((data[9] << 8) | data[8]) & 0b0011111111111111; }
 function VP8LWidth(data) { return (((data[2] << 8) | data[1]) & 0b0011111111111111) + 1; }
@@ -55,19 +65,17 @@ class WebPReader {
   async readFileHeader() {
     const buf = await this.readBytes(12);
     const decoder = new TextDecoder('utf-8');
-    const view = new DataView(buf.buffer);
     if (buf === undefined) { throw new Error('Reached end while reading header'); }
     if (decoder.decode(buf.slice(0, 4)) != 'RIFF') { throw new Error('Bad header (not RIFF)'); }
     if (decoder.decode(buf.slice(8, 12)) != 'WEBP') { throw new Error('Bad header (not WEBP)'); }
-    return { fileSize: view.getInt32(4, true) };
+    return { fileSize: getDataView(buf).getInt32(4, true) };
   }
   async readChunkHeader() {
     const buf = await this.readBytes(8, true);
     const decoder = new TextDecoder('utf-8');
-    const view = new DataView(buf.buffer);
     if (buf.length == 0) { return { fourCC: '\x00\x00\x00\x00', size: 0 }; }
     else if (buf.length < 8) { throw new Error('Reached end while reading chunk header'); }
-    return { fourCC: decoder.decode(buf.slice(0, 4)), size: view.getInt32(4, true) };
+    return { fourCC: decoder.decode(buf.slice(0, 4)), size: getDataView(buf).getInt32(4, true) };
   }
   async readChunkContents(size) {
     let buf = await this.readBytes(size);
@@ -99,25 +107,25 @@ class WebPReader {
       hasEXIF:  !!(buf[0] & 0b00001000),
       hasXMP:   !!(buf[0] & 0b00000100),
       hasAnim:  !!(buf[0] & 0b00000010),
-      width: buf.readUIntLE(4, 3) + 1,
-      height: buf.readUIntLE(7, 3) + 1
+      width: readUIntLE(buf, 4, 3) + 1,
+      height: readUIntLE(buf, 7, 3) + 1
     };
   }
   async readChunk_ANIM(size) {
     let buf = await this.readChunkContents(size);
     if (buf === undefined) { throw new Error('Reached end while reading ANIM chunk'); }
-    return { raw: buf, bgColor: buf.slice(0, 4), loops: buf.readUInt16LE(4) };
+    return { raw: buf, bgColor: buf.slice(0, 4), loops: getDataView(buf).getUint16(4, true) };
   }
   async readChunk_ANMF(size) {
     let buf = await this.readChunkContents(size);
     if (buf === undefined) { throw new Error('Reached end while reading ANMF chunk'); }
     let out = {
       raw: buf,
-      x: buf.readUIntLE(0, 3),
-      y: buf.readUIntLE(3, 3),
-      width: buf.readUIntLE(6, 3) + 1,
-      height: buf.readUIntLE(9, 3) + 1,
-      delay: buf.readUIntLE(12, 3),
+      x: readUIntLE(buf, 0, 3),
+      y: readUIntLE(buf, 3, 3),
+      width: readUIntLE(buf, 6, 3) + 1,
+      height: readUIntLE(buf, 9, 3) + 1,
+      delay: readUIntLE(buf, 12, 3),
       blend: !(buf[15] & 0b00000010),
       dispose: !!(buf[15] & 0b00000001)
     }, keepLooping = true, anmfReader = new WebPReader();
