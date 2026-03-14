@@ -14,7 +14,9 @@
 */
 
 
-const libwebpF = require('./libwebp/libwebp.js');
+import libwebp from './libwebp/libwebp.js';
+import wasmBase64 from './libwebp/libwebp.wasm';
+
 const ranges = {
     preset: { n: 0, m: 5 },
     lossless: { n: 0, m: 9 },
@@ -62,10 +64,19 @@ function checkAdv(adv) {
     if ((adv[key] < r.n) || (adv[key] > r.m)) { throw new Error(`advanced.${key} out of range ${r.n}..${r.m}`); }
   }
 }
-module.exports = class libWebP {
+export default class libWebP {
   enc = 0;
-  async init() {
-    let Module = this.Module = await libwebpF();
+  async init(opts) {
+    let _opts = opts || {};
+    if (typeof wasmBase64 === 'string' && wasmBase64.startsWith('data:')) {
+      const binaryString = atob(wasmBase64.split(',')[1]);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      _opts.wasmBinary = bytes;
+    }
+    let Module = this.Module = await libwebp(_opts);
     this.api = Module.WebPEnc;
     this.api.getResult = (e) => { return new Uint8Array(new Uint8Array(Module.HEAP8.buffer, e.getResult(), e.getResultSize())); };
     this.api.decodeRGBA = Module.cwrap('decodeRGBA', 'number', [ 'number', 'number' ]);

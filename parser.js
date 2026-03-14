@@ -14,7 +14,9 @@
 */
 
 
-const IO = require('./io.js');
+import IO from './io.js';
+import { Buffer } from 'buffer';
+
 const nullByte = Buffer.alloc(1);
 nullByte[0] = 0;
 const intfTypes = {
@@ -49,7 +51,7 @@ function createBasicChunk(name, data) {
   if (size&1) { return { size: size + 9, chunks: [ header, data, nullByte ] }; }
   else { return { size: size + 8, chunks: [ header, data ] }; }
 }
-class WebPReader {
+export class WebPReader {
   constructor() { this.type = intfTypes.NONE; }
   readFile(path) { this.type = intfTypes.FILE; this.path = path; }
   readBuffer(buf) { this.type = intfTypes.BUFFER; this.buf = buf; this.cursor = 0; }
@@ -234,9 +236,9 @@ class WebPReader {
     return out;
   }
 }
-class WebPWriter {
+export class WebPWriter {
   constructor() { this.type = intfTypes.NONE; this.chunks = []; this.width = this.height = 0; }
-  reset() { this.chunks.length = 0; width = 0; height = 0; }
+  reset() { this.chunks.length = 0; this.width = 0; this.height = 0; }
   writeFile(path) { this.type = intfTypes.FILE; this.path = path; }
   writeBuffer() { this.type = intfTypes.BUFFER; }
   async commit() {
@@ -386,4 +388,3 @@ class WebPWriter {
   writeChunk_EXIF(exif) { this.writeBytes(...((createBasicChunk('EXIF', exif.raw)).chunks)); }
   writeChunk_XMP(xmp) { this.writeBytes(...((createBasicChunk('XMP ', xmp.raw)).chunks)); }
 }
-module.exports = { WebPReader, WebPWriter };

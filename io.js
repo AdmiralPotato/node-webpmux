@@ -39,4 +39,4 @@ if (typeof window === 'undefined') {
     avail: false
   };
 }
-module.exports = fs;
+export default fs;

@@ -15,8 +15,11 @@
 
 
 // For more information on the WebP format, see https://developers.google.com/speed/webp/docs/riff_container
-const { WebPReader, WebPWriter } = require('./parser.js');
-const IO = require('./io.js');
+import { WebPReader, WebPWriter } from './parser.js';
+import IO from './io.js';
+import libWebP from './libwebp.js';
+import { Buffer } from 'buffer';
+
 const emptyImageBuffer = Buffer.from([
   0x52, 0x49, 0x46, 0x46,   0x24, 0x00, 0x00, 0x00,   0x57, 0x45, 0x42, 0x50,   0x56, 0x50, 0x38, 0x20,
   0x18, 0x00, 0x00, 0x00,   0x30, 0x01, 0x00, 0x9d,   0x01, 0x2a, 0x01, 0x00,   0x01, 0x00, 0x02, 0x00,
@@ -60,7 +63,8 @@ const imagePresets = {
   TEXT: 5 // text-like
 };
 
-class Image {
+export class Image {
+  static libwebp = new libWebP();
   constructor() { this.data = null; this.loaded = false; this.path = ''; }
   async initLib() { return Image.initLib(); }
   clear() { this.data = null; this.path = ''; this.loaded = false; }
@@ -376,9 +380,7 @@ class Image {
   }
   // Public static functions
   static async initLib() {
-    if (!Image.libwebp) {
-      const libWebP = require('./libwebp.js');
-      Image.libwebp = new libWebP();
+    if (!Image.libwebp.api) {
       await Image.libwebp.init();
     }
   }
@@ -419,7 +421,7 @@ class Image {
     return img;
   }
 }
-module.exports = {
+export default {
   TYPE_LOSSY: constants.TYPE_LOSSY,
   TYPE_LOSSLESS: constants.TYPE_LOSSLESS,
   TYPE_EXTENDED: constants.TYPE_EXTENDED,

@@ -1,6 +1,6 @@
 
 var LibWebP = (() => {
-  var _scriptDir = typeof document !== 'undefined' && document.currentScript === null ? import.meta.url : document?.currentScript?.src;
+  var _scriptDir = (typeof document !== 'undefined' && document.currentScript ? document.currentScript.src : undefined) || import.meta.url;
   if (typeof __filename !== 'undefined') _scriptDir = _scriptDir || __filename;
   return (
 function(LibWebP) {
